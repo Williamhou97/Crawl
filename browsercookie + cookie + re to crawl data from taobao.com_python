@@ -1,0 +1,45 @@
+import requests
+import re
+import browsercookie
+
+def gethtml(url):
+    try:
+        headers = {
+            'User-Agent':'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_12_0) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/53.0.2785.116 Safari/537.36'
+            }
+        cookie = browsercookie.chrome()
+        r = requests.get(url,headers = headers,cookies = cookie,timeout = 30)
+        r.raise_for_status
+        r.encoding = r.apparent_encoding
+        return(r.text)
+    except:
+        print("爬取失败")
+
+def simplify(name):
+    for i in range(len(name)):
+        name[i] = eval(name[i].strip().split(":")[1])
+
+def printgoodslist(good):
+    tplt = "{:4}\t{:8}\t{:16}"
+    print(tplt.format("序号","价格","商品名称"))
+    count = 0
+    for i in range(len(good)):
+        count = count+1
+        print(tplt.format(count,good[i][1],good[i][0]))
+    
+goodslist = []
+goods = "书包"
+depth = 3
+starturl = "https://s.taobao.com/search?q=" + goods
+for i in range(depth):
+    url = starturl + "&s=" + str(44*i)
+    content = gethtml(url)
+    text = gethtml(url)
+    price = re.findall(r'\"view_price\"\:\"[\d\.]*\"',text)
+    title = re.findall(r'\"raw_title\"\:\".*?\"',text)
+    simplify(price)
+    simplify(title)
+    for i in range(len(price)):
+        goodslist.append([title[i],price[i]])
+        
+printgoodslist(goodslist)
