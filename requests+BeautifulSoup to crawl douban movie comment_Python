@@ -1,0 +1,52 @@
+import requests
+from bs4 import BeautifulSoup
+import time
+import xlwt
+
+
+def getpage(url):
+    try:
+        headers = {'User-Agent':'Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/65.0.3325.146 Safari/537.36'}
+        r = requests.get(url,headers = headers,timeout = 20)
+        r.raise_for_status()
+        return(r.text)
+    except:
+        print("爬取失败")
+
+'''for i in range(2):
+    gethtml("https://movie.douban.com/subject/27060077/comments?start="+str(i*20)+"&limit=20&sort=new_score&status=P")'''
+    
+'''https://movie.douban.com/subject/27060077/comments?start=0&limit=20&sort=new_score&status=P'''
+def writeexcel(commentdata):
+    num = commentdata[3]
+    for row in range(0,3):
+        douban.write(num,row,commentdata[row])
+
+def analysepage(html):
+    num = line
+    soup = BeautifulSoup(html,"html.parser")
+    group = soup.find("div",attrs={"id": "comments"})
+    groups = group.find_all("div",class_ = "comment-item")
+    for i in groups:
+        nametime = i.find("span",class_ = "comment-info")
+        name = nametime.find("a").string
+        times = nametime.find("span",class_ = "comment-time ").string.strip()
+        comment = i.find("span",class_ = "short").string
+        num += 1
+        commentdata = [name,times,comment,num]
+        writeexcel(commentdata)
+    return(num)
+
+line = 0
+output = xlwt.Workbook()
+douban = output.add_sheet('douban', cell_overwrite_ok=True)
+douban.write(0,0,"commenter name")
+douban.write(0,1,"comment time")
+douban.write(0,2,"comment")
+
+for page in range(10):
+    html = getpage("https://movie.douban.com/subject/27060077/comments?start="+str(page*20)+"&limit=20&sort=new_score&status=P")
+    line = analysepage(html)
+    print("第{:.0f}页解析成功".format(page+1))
+output.save("douban.xls")
+print("爬取完成")
