@@ -1,0 +1,108 @@
+from selenium import webdriver
+from selenium.webdriver.chrome.options import Options
+import time
+from bs4 import BeautifulSoup
+
+chrome_options = Options()
+chrome_options.add_argument('--headless')
+driver = webdriver.Chrome(chrome_options=chrome_options)
+
+def sleep():
+    time.sleep(3)
+
+driver.get("https://www.icourse163.org/learn/OUC-1001959006?tid=1002785073")
+sleep()
+driver.find_element_by_class_name("navRight-func-i_div38_div65").click()
+sleep()
+choosingbox = driver.find_element_by_class_name("ux-tabs-underline_hd")
+choosingbox.find_elements_by_tag_name("li")[1].click()
+driver.switch_to_default_content()
+sleep()
+
+frameparent = driver.find_element_by_id("j-ursContainer-0")
+sleep()
+frame = frameparent.find_element_by_tag_name("iframe")
+driver.switch_to_frame(frame)
+sleep()
+
+driver.find_element_by_name("email").send_keys("1876382968@qq.com")
+driver.find_element_by_name("password").send_keys("")
+sleep()
+driver.find_element_by_id("dologin").click()
+sleep()
+
+buttonlist = driver.find_element_by_class_name("component-eva-modal_ft")
+buttonlist.find_elements_by_tag_name("span")[1].click()
+sleep()
+
+driver.find_element_by_css_selector("[data-name=考试]").find_element_by_tag_name("a").click()
+sleep()
+driver.find_element_by_css_selector("a.u-btn.u-btn-default.j-examBtn.f-fl").click()
+sleep()
+html = driver.page_source
+soup = BeautifulSoup(html,"html.parser")
+
+questionlist = soup.find("div","m-data-lists f-cb f-pr j-data-list")
+htmllist = questionlist.find_all("div",'m-choiceQuestion u-questionItem analysisMode')
+questions = []
+
+def getquestion(html):
+    question = html.find("div","j-title title f-cb")
+    ps = question.find_all("p")
+    questiontxt = ''    
+    for p in ps:
+        try:
+            spanparents = p.find_all("span",style="font-family:宋体;line-height:150%;font-size:14px;")
+            for spanparent in spanparents:
+                if spanparent.find("span") != None:
+                    for i in spanparent.get_text().split("\n"):
+                        i = i.strip()
+                        questiontxt += i
+                        
+            spanparents = p.find_all("span",style="font-family:宋体;font-size:14px;")
+            for spanparent in spanparents:
+                if spanparent.find("span") != None:
+                    for i in spanparent.get_text().split("\n"):
+                        i = i.strip()
+                        questiontxt += i
+        except:
+            pass
+    questiontxt = questiontxt.replace(" \xa0",'')
+    questiontxt = questiontxt.replace("\u3000",'')
+    questiontxt = questiontxt.replace("\xa0",'')
+    return(questiontxt)
+    
+def getanswerchoice(html):
+    answer = html.find_all("li")
+    answerlist = []
+    for li in answer:
+        spans = li.find_all("span")
+        for span in spans:
+            try:
+                if 'font-family:宋体;' in span["style"] or "font-family: 宋体;" in span["style"]:
+                    answerlist.append(span.string.strip())
+            except:
+                pass                
+    if answerlist != []:
+        return(answerlist)
+    else:
+        return(["True","False"])
+
+def generatequestion(html):
+    questions.append([getquestion(html),getanswerchoice(html)])
+    
+    
+generatequestion(soup.find("div","m-choiceQuestion u-questionItem analysisMode first"))
+for html in htmllist:
+    generatequestion(html)
+generatequestion(soup.find("div","m-choiceQuestion u-questionItem analysisMode last"))
+
+with open("questionlist.txt","w+") as f:
+    for i in range(len(questions)):
+        f.write(str(i+1)+".")
+        f.write(questions[i][0]+"\n")
+        for a in questions[i][1]:
+            f.write(a+"\n")
+    f.close()
+
+driver.quit()
